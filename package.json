@@ -1,0 +1,41 @@
+{
+  "name": "social",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "webpack --config webpack.config.client.production.js && webpack --mode=production --config webpack.config.server.js",
+    "start": "NODE_ENV=production node ./dist/server.generated.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.4",
+    "cors": "^2.8.5",
+    "express": "^4.16.3",
+    "express-jwt": "^5.3.1",
+    "helmet": "^3.16.0",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.11",
+    "mongoose": "^5.4.19",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "react-hot-loader": "^4.1.2"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.2",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "nodemon": "^1.17.3",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0",
+    "webpack-dev-middleware": "^3.6.1",
+    "webpack-hot-middleware": "^2.24.3",
+    "webpack-node-externals": "^1.7.2"
+  },
+  "author": "saqib",
+  "license": "ISC"
+}
