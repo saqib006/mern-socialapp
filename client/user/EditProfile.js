@@ -1,6 +1,6 @@
 import React, {Component} from 'react'
-import {Card, CardActions, CardContent, Button, TextField, Typography, Avatar} from '@material-ui/core'
-import Icon from '@material-ui/icons/ImportContacts'
+import {Typography, TextField, Button, Card, CardActions, CardContent, Avatar} from '@material-ui/core'
+import Icon from '@material-ui/core/Icon'
 import FileUpload from '@material-ui/icons/FileCopy'
 import PropTypes from 'prop-types'
 import {withStyles} from '@material-ui/core/styles'

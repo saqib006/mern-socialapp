@@ -3,11 +3,14 @@ import auth from '../auth/auth-helper'
 import {read} from './api-user'
 import PropTypes from 'prop-types'
 import {withStyles} from '@material-ui/core/styles'
-import {Redirect} from 'react-router-dom'
+import {Redirect, Link} from 'react-router-dom'
 import Person from '@material-ui/icons/Person'
 import Edit from '@material-ui/icons/Edit'
 import DeleteUser from './DeleteUser'
-import {List, ListItem, ListItemAvatar, Avatar, ListItemText , Divider, Paper, Typography, ListItemSecondaryAction, Link, IconButton} from '@material-ui/core'
+import FollowProfileButton from './FollowProfileButton'
+import ProfileTabs from './../user/ProfileTabs'
+import {listByUser} from './../post/api-post.js'
+import {List, ListItem, ListItemAvatar, Avatar, ListItemText , Divider, Paper, Typography, ListItemSecondaryAction, IconButton} from '@material-ui/core'
 const styles = theme => ({
     root: theme.mixins.gutters({
       maxWidth: 600,
@@ -26,82 +29,122 @@ const styles = theme => ({
       margin: 10
     }
   })
-class Profile extends Component {
-    constructor({match}){
-        super()
-        this.state = {
-            user:'',
-            redirectToSigin:false  
+  class Profile extends Component {
+    constructor({match}) {
+      super()
+      this.state = {
+        user: {following:[], followers:[]},
+        redirectToSignin: false,
+        following: false,
+        posts: []
+      }
+      this.match = match
+    }
+    init = (userId) => {
+      const jwt = auth.isAuthenticated()
+      read({
+        userId: userId
+      }, {t: jwt.token}).then((data) => {
+        if (data.error) {
+          this.setState({redirectToSignin: true})
+        } else {
+          let following = this.checkFollow(data)
+          this.setState({user: data, following: following})
+          this.loadPosts(data._id)
         }
-        this.match = match
+      })
     }
-
-    init = userId => {
-        const jwt = auth.isAuthenticated()
-        read({
-            userId:userId
-        }, {t:jwt.token}).then(data=>{
-            console.log('data', jwt)
-            if(data.error)
-                this.setState({redirectToSigin:true})
-            else
-                return this.setState({user:data})
-        })
+    componentWillReceiveProps = (props) => {
+      this.init(props.match.params.userId)
     }
-
-    componentDidMount(){
-        this.init(this.match.params.userId)
+    componentDidMount = () => {
+      this.init(this.match.params.userId)
     }
-
-    componentWillReceiveProps(){
-        this.init(this.match.params.userId)
+    checkFollow = (user) => {
+      const jwt = auth.isAuthenticated()
+      const match = user.followers.find((follower)=> {
+        return follower._id == jwt.user._id
+      })
+      return match
     }
-
-   
-  render() {
-    const {classes} = this.props
-    const redirectToSignin = this.state.redirectToSignin
-    if (redirectToSignin)
-      return <Redirect to='/signin'/>
-    return (
-        <div>
+    clickFollowButton = (callApi) => {
+      const jwt = auth.isAuthenticated()
+      callApi({
+        userId: jwt.user._id
+      }, {
+        t: jwt.token
+      }, this.state.user._id).then((data) => {
+        if (data.error) {
+          this.setState({error: data.error})
+        } else {
+          this.setState({user: data, following: !this.state.following})
+        }
+      })
+    }
+    loadPosts = (user) => {
+      const jwt = auth.isAuthenticated()
+      listByUser({
+        userId: user
+      }, {
+        t: jwt.token
+      }).then((data) => {
+        if (data.error) {
+          console.log(data.error)
+        } else {
+          this.setState({posts: data})
+        }
+      })
+    }
+    removePost = (post) => {
+      const updatedPosts = this.state.posts
+      const index = updatedPosts.indexOf(post)
+      updatedPosts.splice(index, 1)
+      this.setState({posts: updatedPosts})
+    }
+    render() {
+      const {classes} = this.props
+      const photoUrl = this.state.user._id
+                ? `/api/users/photo/${this.state.user._id}?${new Date().getTime()}`
+                : '/api/users/defaultphoto'
+      const redirectToSignin = this.state.redirectToSignin
+      if (redirectToSignin) {
+        return <Redirect to='/signin'/>
+      }
+      return (
         <Paper className={classes.root} elevation={4}>
-          <Typography type="title" className={classes.title}> Profile </Typography>
-            <List dense>
-              <ListItem>
-                <ListItemAvatar>
-                   <Avatar>
-                     <Person/>
-                   </Avatar>
-                </ListItemAvatar>
-                <ListItemText primary={this.state.user.name} 
-                             secondary={this.state.user.email}/>
-
-{
-             auth.isAuthenticated().user && auth.isAuthenticated().user._id == this.state.user._id
-             ? (<ListItemSecondaryAction>
-                  <Link to={"/user/edit/" + this.state.user._id}>
-                    <IconButton aria-label="Edit" color="primary">
-                      <Edit/>
-                    </IconButton>
-                  </Link>
-                  <DeleteUser userId={this.state.user._id}/>
-                </ListItemSecondaryAction>)
-            :''
-            }         
-              </ListItem>
-              <Divider/>
-              <ListItem>
-                <ListItemText primary={"Joined: " + 
-                    (new Date(this.state.user.created)).toDateString()}/>
-              </ListItem>
-            </List>
+          <Typography type="title" className={classes.title}>
+            Profile
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemAvatar>
+                <Avatar src={photoUrl} className={classes.bigAvatar}/>
+              </ListItemAvatar>
+              <ListItemText primary={this.state.user.name} secondary={this.state.user.email}/> {
+               auth.isAuthenticated().user && auth.isAuthenticated().user._id == this.state.user._id
+               ? (<ListItemSecondaryAction>
+                    <Link to={"/user/edit/" + this.state.user._id}>
+                      <IconButton aria-label="Edit" color="primary">
+                        <Edit/>
+                      </IconButton>
+                    </Link>
+                    <DeleteUser userId={this.state.user._id}/>
+                  </ListItemSecondaryAction>)
+              : (<FollowProfileButton following={this.state.following} onButtonClick={this.clickFollowButton}/>)
+              }
+            </ListItem>
+            <Divider/>
+            <ListItem>
+              <ListItemText primary={this.state.user.about} secondary={"Joined: " + (
+                new Date(this.state.user.created)).toDateString()}/>
+            </ListItem>
+          </List>
+          <ProfileTabs user={this.state.user} posts={this.state.posts} removePostUpdate={this.removePost}/>
         </Paper>
-      </div>
-    )
+      )
+    }
   }
-}
-Profile.propTypes = {
+  Profile.propTypes = {
     classes: PropTypes.object.isRequired
   }
   
